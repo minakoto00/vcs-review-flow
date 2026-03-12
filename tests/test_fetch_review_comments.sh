@@ -267,28 +267,43 @@ test_github_json_split() {
   local output
   output=$(PATH="$fake_bin:$PATH" bash "$SCRIPT" --repo "$ROOT_DIR" --platform github --number 77 --json)
 
-  assert_eq "3" "$(printf '%s' "$output" | jq -r '.code_review_comments.count')" "github code review comment count"
+  # Active code review comments (resolved excluded)
+  assert_eq "2" "$(printf '%s' "$output" | jq -r '.code_review_comments.count')" "github code review comment count excludes resolved"
   assert_eq "1" "$(printf '%s' "$output" | jq -r '.discussion_comments.count')" "github discussion comment count"
-  assert_eq "src/app.ts" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].path')" "github review comment path"
-  assert_eq "40" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].start_line')" "github review comment start line"
-  assert_eq "RIGHT" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].side')" "github review comment side"
-  assert_eq "RIGHT" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].start_side')" "github review comment start side"
-  assert_eq "41" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].original_line')" "github review comment original line"
-  assert_eq "39" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].original_start_line')" "github review comment original start line"
-  assert_eq "7" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].original_position')" "github review comment original position"
-  assert_eq "line" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].subject_type')" "github review comment subject type"
-  assert_eq "headsha123" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].commit_id')" "github review comment commit id"
-  assert_eq "basesha456" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].original_commit_id')" "github review comment original commit id"
-  assert_eq "@@ -39,4 +39,6 @@ export function run() {" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].diff_hunk')" "github review comment diff hunk"
-  assert_eq "PRRT_kwDOAA1" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_id')" "github resolved thread id"
-  assert_eq "resolved" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_state')" "github resolved thread state"
-  assert_eq "true" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_resolved')" "github resolved thread flag"
-  assert_eq "PRRT_kwDOAA2" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_id')" "github unresolved thread id"
-  assert_eq "unresolved" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_state')" "github unresolved thread state"
-  assert_eq "false" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_resolved')" "github unresolved thread flag"
-  assert_eq "PRRT_kwDOAA3" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[2].thread_id')" "github outdated thread id"
-  assert_eq "outdated" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[2].thread_state')" "github outdated thread state"
-  assert_eq "true" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[2].thread_outdated')" "github outdated thread flag"
+
+  # items[0] is comment 102 (unresolved)
+  assert_eq "src/app.ts" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].path')" "github active comment 0 path"
+  assert_eq "52" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].line')" "github active comment 0 line"
+  assert_eq "RIGHT" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].side')" "github active comment 0 side"
+  assert_eq "headsha123" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].commit_id')" "github active comment 0 commit id"
+  assert_eq "basesha456" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].original_commit_id')" "github active comment 0 original commit id"
+  assert_eq "PRRT_kwDOAA2" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_id')" "github unresolved thread id"
+  assert_eq "unresolved" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_state')" "github unresolved thread state"
+  assert_eq "false" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_resolved')" "github unresolved thread flag"
+
+  # items[1] is comment 103 (outdated)
+  assert_eq "src/legacy.ts" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].path')" "github active comment 1 path"
+  assert_eq "PRRT_kwDOAA3" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_id')" "github outdated thread id"
+  assert_eq "outdated" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_state')" "github outdated thread state"
+  assert_eq "true" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_outdated')" "github outdated thread flag"
+
+  # Excluded resolved comments
+  assert_eq "1" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.count')" "github excluded resolved count"
+  assert_eq "101" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].id')" "github excluded resolved comment id"
+  assert_eq "src/app.ts" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].path')" "github excluded resolved comment path"
+  assert_eq "40" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].start_line')" "github excluded resolved start line"
+  assert_eq "42" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].line')" "github excluded resolved line"
+  assert_eq "RIGHT" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].side')" "github excluded resolved side"
+  assert_eq "RIGHT" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].start_side')" "github excluded resolved start side"
+  assert_eq "41" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].original_line')" "github excluded resolved original line"
+  assert_eq "39" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].original_start_line')" "github excluded resolved original start line"
+  assert_eq "7" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].original_position')" "github excluded resolved original position"
+  assert_eq "line" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].subject_type')" "github excluded resolved subject type"
+  assert_eq "@@ -39,4 +39,6 @@ export function run() {" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].diff_hunk')" "github excluded resolved diff hunk"
+  assert_eq "PRRT_kwDOAA1" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].thread_id')" "github excluded resolved thread id"
+  assert_eq "resolved" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].thread_state')" "github excluded resolved thread state"
+  assert_eq "true" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].thread_resolved')" "github excluded resolved thread flag"
+
   assert_eq "maintainer" "$(printf '%s' "$output" | jq -r '.discussion_comments.items[0].author')" "github discussion author"
 }
 
@@ -299,22 +314,27 @@ test_gitlab_json_split() {
   local output
   output=$(PATH="$fake_bin:$PATH" bash "$SCRIPT" --repo "$ROOT_DIR" --platform gitlab --number 55 --json)
 
-  assert_eq "1" "$(printf '%s' "$output" | jq -r '.code_review_comments.count')" "gitlab code review comment count"
+  # Active code review comments (resolved excluded — the only code comment is resolved)
+  assert_eq "0" "$(printf '%s' "$output" | jq -r '.code_review_comments.count')" "gitlab code review comment count excludes resolved"
   assert_eq "1" "$(printf '%s' "$output" | jq -r '.discussion_comments.count')" "gitlab discussion comment count"
-  assert_eq "src/service.kt" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].path')" "gitlab review comment path"
-  assert_eq "18" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].new_line')" "gitlab review comment new line"
-  assert_eq "17" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].old_line')" "gitlab review comment old line"
-  assert_eq "base123" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].base_sha')" "gitlab review comment base sha"
-  assert_eq "start456" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].start_sha')" "gitlab review comment start sha"
-  assert_eq "head789" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].head_sha')" "gitlab review comment head sha"
-  assert_eq "text" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].position_type')" "gitlab review comment position type"
-  assert_eq "17" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].line_range.start.new_line')" "gitlab review comment line range start"
-  assert_eq "18" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].line_range.end.new_line')" "gitlab review comment line range end"
-  assert_eq "review-thread" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_id')" "gitlab review thread id"
-  assert_eq "resolved" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_state')" "gitlab review thread state"
-  assert_eq "true" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_resolved')" "gitlab review thread resolved flag"
-  assert_eq "lead-reviewer" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].resolved_by.username')" "gitlab resolved by username"
-  assert_eq "2026-03-11T10:30:00Z" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].resolved_at')" "gitlab resolved at"
+
+  # Excluded resolved comments
+  assert_eq "1" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.count')" "gitlab excluded resolved count"
+  assert_eq "src/service.kt" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].path')" "gitlab excluded resolved path"
+  assert_eq "18" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].new_line')" "gitlab excluded resolved new line"
+  assert_eq "17" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].old_line')" "gitlab excluded resolved old line"
+  assert_eq "base123" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].base_sha')" "gitlab excluded resolved base sha"
+  assert_eq "start456" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].start_sha')" "gitlab excluded resolved start sha"
+  assert_eq "head789" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].head_sha')" "gitlab excluded resolved head sha"
+  assert_eq "text" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].position_type')" "gitlab excluded resolved position type"
+  assert_eq "17" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].line_range.start.new_line')" "gitlab excluded resolved line range start"
+  assert_eq "18" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].line_range.end.new_line')" "gitlab excluded resolved line range end"
+  assert_eq "review-thread" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].thread_id')" "gitlab excluded resolved thread id"
+  assert_eq "resolved" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].thread_state')" "gitlab excluded resolved thread state"
+  assert_eq "true" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].thread_resolved')" "gitlab excluded resolved thread flag"
+  assert_eq "lead-reviewer" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].resolved_by.username')" "gitlab excluded resolved by username"
+  assert_eq "2026-03-11T10:30:00Z" "$(printf '%s' "$output" | jq -r '.excluded_resolved_comments.items[0].resolved_at')" "gitlab excluded resolved at"
+
   assert_eq "gitlab-maintainer" "$(printf '%s' "$output" | jq -r '.discussion_comments.items[0].author')" "gitlab discussion author"
 }
 
