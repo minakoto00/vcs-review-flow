@@ -57,6 +57,52 @@ fi
 
 endpoint=${2-}
 case "$endpoint" in
+  graphql)
+    cat <<'JSON'
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "reviewThreads": {
+          "nodes": [
+            {
+              "id": "PRRT_kwDOAA1",
+              "isResolved": true,
+              "isOutdated": false,
+              "comments": {
+                "nodes": [
+                  {"databaseId": 101}
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOAA2",
+              "isResolved": false,
+              "isOutdated": false,
+              "comments": {
+                "nodes": [
+                  {"databaseId": 102}
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOAA3",
+              "isResolved": false,
+              "isOutdated": true,
+              "comments": {
+                "nodes": [
+                  {"databaseId": 103}
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+JSON
+    ;;
   repos/acme/widgets/pulls/77/comments)
     cat <<'JSON'
 [
@@ -78,6 +124,30 @@ case "$endpoint" in
     "diff_hunk": "@@ -39,4 +39,6 @@ export function run() {",
     "html_url": "https://github.com/acme/widgets/pull/77#discussion_r101",
     "created_at": "2026-03-11T08:00:00Z"
+  },
+  {
+    "id": 102,
+    "user": {"login": "reviewer"},
+    "body": "Split this branch.",
+    "path": "src/app.ts",
+    "line": 52,
+    "side": "RIGHT",
+    "commit_id": "headsha123",
+    "original_commit_id": "basesha456",
+    "html_url": "https://github.com/acme/widgets/pull/77#discussion_r102",
+    "created_at": "2026-03-11T08:15:00Z"
+  },
+  {
+    "id": 103,
+    "user": {"login": "reviewer"},
+    "body": "This older thread may still matter.",
+    "path": "src/legacy.ts",
+    "line": 8,
+    "side": "RIGHT",
+    "commit_id": "headsha123",
+    "original_commit_id": "basesha456",
+    "html_url": "https://github.com/acme/widgets/pull/77#discussion_r103",
+    "created_at": "2026-03-11T08:30:00Z"
   }
 ]
 JSON
@@ -120,6 +190,11 @@ case "$endpoint" in
   {
     "id": "review-thread",
     "individual_note": false,
+    "resolved": true,
+    "resolved_at": "2026-03-11T10:30:00Z",
+    "resolved_by": {
+      "username": "lead-reviewer"
+    },
     "notes": [
       {
         "id": 301,
@@ -157,6 +232,9 @@ case "$endpoint" in
   {
     "id": "discussion-thread",
     "individual_note": false,
+    "resolved": false,
+    "resolved_at": null,
+    "resolved_by": null,
     "notes": [
       {
         "id": 302,
@@ -188,7 +266,7 @@ test_github_json_split() {
   local output
   output=$(PATH="$fake_bin:$PATH" bash "$SCRIPT" --repo "$ROOT_DIR" --platform github --number 77 --json)
 
-  assert_eq "1" "$(printf '%s' "$output" | jq -r '.code_review_comments.count')" "github code review comment count"
+  assert_eq "3" "$(printf '%s' "$output" | jq -r '.code_review_comments.count')" "github code review comment count"
   assert_eq "1" "$(printf '%s' "$output" | jq -r '.discussion_comments.count')" "github discussion comment count"
   assert_eq "src/app.ts" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].path')" "github review comment path"
   assert_eq "40" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].start_line')" "github review comment start line"
@@ -201,6 +279,15 @@ test_github_json_split() {
   assert_eq "headsha123" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].commit_id')" "github review comment commit id"
   assert_eq "basesha456" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].original_commit_id')" "github review comment original commit id"
   assert_eq "@@ -39,4 +39,6 @@ export function run() {" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].diff_hunk')" "github review comment diff hunk"
+  assert_eq "PRRT_kwDOAA1" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_id')" "github resolved thread id"
+  assert_eq "resolved" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_state')" "github resolved thread state"
+  assert_eq "true" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_resolved')" "github resolved thread flag"
+  assert_eq "PRRT_kwDOAA2" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_id')" "github unresolved thread id"
+  assert_eq "unresolved" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_state')" "github unresolved thread state"
+  assert_eq "false" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[1].thread_resolved')" "github unresolved thread flag"
+  assert_eq "PRRT_kwDOAA3" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[2].thread_id')" "github outdated thread id"
+  assert_eq "outdated" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[2].thread_state')" "github outdated thread state"
+  assert_eq "true" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[2].thread_outdated')" "github outdated thread flag"
   assert_eq "maintainer" "$(printf '%s' "$output" | jq -r '.discussion_comments.items[0].author')" "github discussion author"
 }
 
@@ -222,6 +309,11 @@ test_gitlab_json_split() {
   assert_eq "text" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].position_type')" "gitlab review comment position type"
   assert_eq "17" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].line_range.start.new_line')" "gitlab review comment line range start"
   assert_eq "18" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].line_range.end.new_line')" "gitlab review comment line range end"
+  assert_eq "review-thread" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_id')" "gitlab review thread id"
+  assert_eq "resolved" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_state')" "gitlab review thread state"
+  assert_eq "true" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].thread_resolved')" "gitlab review thread resolved flag"
+  assert_eq "lead-reviewer" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].resolved_by.username')" "gitlab resolved by username"
+  assert_eq "2026-03-11T10:30:00Z" "$(printf '%s' "$output" | jq -r '.code_review_comments.items[0].resolved_at')" "gitlab resolved at"
   assert_eq "gitlab-maintainer" "$(printf '%s' "$output" | jq -r '.discussion_comments.items[0].author')" "gitlab discussion author"
 }
 
@@ -230,15 +322,27 @@ test_docs_cover_two_step_scope_flow() {
   grep -q 'code-review comments' "$ROOT_DIR/SKILL.md"
   grep -q 'discussion comments' "$ROOT_DIR/SKILL.md"
   grep -qi 'only the approved comment categories' "$ROOT_DIR/SKILL.md"
+  grep -qi 'resolved code-review feedback is excluded from review scope by default' "$ROOT_DIR/SKILL.md"
+  grep -qi 'outdated code-review feedback' "$ROOT_DIR/SKILL.md"
+  grep -qi 'search only within changed files for same-pattern candidates' "$ROOT_DIR/SKILL.md"
+  grep -qi 'report same-pattern candidates separately from the original issue clusters' "$ROOT_DIR/SKILL.md"
   grep -qi 'subagents in parallel' "$ROOT_DIR/SKILL.md"
   grep -qi 'verification report' "$ROOT_DIR/SKILL.md"
   grep -qi 'before planning fixes' "$ROOT_DIR/SKILL.md"
   grep -qi 'ask the user whether to include code-review comments in scope' "$ROOT_DIR/README.md"
   grep -qi 'only the approved comment categories' "$ROOT_DIR/README.md"
+  grep -qi 'resolved code-review feedback is excluded by default' "$ROOT_DIR/README.md"
+  grep -qi 'outdated threads are validated separately from unresolved threads' "$ROOT_DIR/README.md"
+  grep -qi 'search only within changed files for same-pattern candidates' "$ROOT_DIR/README.md"
+  grep -qi 'same-pattern candidates separately from the original issues' "$ROOT_DIR/README.md"
   grep -qi 'verification report' "$ROOT_DIR/README.md"
   grep -qi 'even when tests do not yet cover them' "$ROOT_DIR/README.md"
   grep -qi 'ask the user whether to include discussion comments in scope' "$ROOT_DIR/docs/examples.md"
   grep -qi 'subagents in parallel' "$ROOT_DIR/docs/examples.md"
+  grep -qi 'resolved code-review feedback is excluded by default' "$ROOT_DIR/docs/examples.md"
+  grep -qi 'outdated threads are validated separately from unresolved threads' "$ROOT_DIR/docs/examples.md"
+  grep -qi 'search only within changed files for same-pattern candidates' "$ROOT_DIR/docs/examples.md"
+  grep -qi 'same-pattern candidates are reported separately from the original issues' "$ROOT_DIR/docs/examples.md"
   grep -qi 'confirm the verification report' "$ROOT_DIR/docs/examples.md"
   ! rg -n '/Users/brainco' "$ROOT_DIR/README.md" >/dev/null
 }

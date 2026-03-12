@@ -61,6 +61,7 @@ repository=$(repository_slug_from_remote "$remote_url")
 normalize_github_comments() {
   local review_comments=$1
   local discussion_comments=$2
+  local review_threads=$3
 
   jq -cn \
     --arg platform "$platform" \
@@ -68,32 +69,65 @@ normalize_github_comments() {
     --arg number "$number" \
     --argjson review_comments "$review_comments" \
     --argjson discussion_comments "$discussion_comments" \
+    --argjson review_threads "$review_threads" \
     '
+      def github_thread_lookup:
+        (
+          $review_threads.data.repository.pullRequest.reviewThreads.nodes // []
+        )
+        | map(
+            . as $thread
+            | ($thread.comments.nodes // [])[]
+            | {
+                key: (.databaseId | tostring),
+                value: {
+                  thread_id: ($thread.id // null),
+                  thread_state: (
+                    if ($thread.isResolved // false) then "resolved"
+                    elif ($thread.isOutdated // false) then "outdated"
+                    else "unresolved"
+                    end
+                  ),
+                  thread_resolved: ($thread.isResolved // false),
+                  thread_outdated: ($thread.isOutdated // false)
+                }
+              }
+          )
+        | from_entries;
+
       {
         platform: $platform,
         repository: $repository,
         number: $number,
         code_review_comments: {
           count: ($review_comments | length),
-          items: ($review_comments | map({
-            id: (.id | tostring),
-            author: (.user.login // .user.name // "unknown"),
-            body: (.body // ""),
-            path: (.path // ""),
-            start_line: (if .start_line == null then null else (.start_line | tostring) end),
-            line: (if .line == null then "" else (.line | tostring) end),
-            side: (.side // null),
-            start_side: (.start_side // null),
-            subject_type: (.subject_type // null),
-            original_line: (if .original_line == null then null else (.original_line | tostring) end),
-            original_start_line: (if .original_start_line == null then null else (.original_start_line | tostring) end),
-            original_position: (if .original_position == null then null else (.original_position | tostring) end),
-            commit_id: (.commit_id // null),
-            original_commit_id: (.original_commit_id // null),
-            diff_hunk: (.diff_hunk // null),
-            url: (.html_url // ""),
-            created_at: (.created_at // "")
-          }))
+          items: (
+            github_thread_lookup as $thread_lookup
+            | $review_comments
+            | map(
+                (.id | tostring) as $comment_id
+                | {
+                    id: $comment_id,
+                    author: (.user.login // .user.name // "unknown"),
+                    body: (.body // ""),
+                    path: (.path // ""),
+                    start_line: (if .start_line == null then null else (.start_line | tostring) end),
+                    line: (if .line == null then "" else (.line | tostring) end),
+                    side: (.side // null),
+                    start_side: (.start_side // null),
+                    subject_type: (.subject_type // null),
+                    original_line: (if .original_line == null then null else (.original_line | tostring) end),
+                    original_start_line: (if .original_start_line == null then null else (.original_start_line | tostring) end),
+                    original_position: (if .original_position == null then null else (.original_position | tostring) end),
+                    commit_id: (.commit_id // null),
+                    original_commit_id: (.original_commit_id // null),
+                    diff_hunk: (.diff_hunk // null),
+                    url: (.html_url // ""),
+                    created_at: (.created_at // "")
+                  }
+                + ($thread_lookup[$comment_id] // {})
+              )
+          )
         },
         discussion_comments: {
           count: ($discussion_comments | length),
@@ -128,10 +162,26 @@ normalize_gitlab_comments() {
       def review_notes:
         [
           active_notes[]
+          | . as $note
+          | $discussions[]
+          | select(any(.notes[]?; (.id // null) == ($note.id // null)))
+          | . as $discussion
+          | $note
           | select(
               (.position // null) != null
               or (.line_code // null) != null
             )
+          | . + {
+              thread_id: ($discussion.id // null),
+              thread_resolved: ($discussion.resolved // false),
+              thread_state: (
+                if ($discussion.resolved // false) then "resolved"
+                else "unresolved"
+                end
+              ),
+              resolved_by: ($discussion.resolved_by // null),
+              resolved_at: ($discussion.resolved_at // null)
+            }
         ];
 
       def discussion_notes:
@@ -170,6 +220,11 @@ normalize_gitlab_comments() {
             position_type: (.position.position_type // null),
             line_range: (.position.line_range // null),
             position: (.position // null),
+            thread_id: (.thread_id // null),
+            thread_state: (.thread_state // "unresolved"),
+            thread_resolved: (.thread_resolved // false),
+            resolved_by: (.resolved_by // null),
+            resolved_at: (.resolved_at // null),
             url: (.url // .web_url // ""),
             created_at: (.created_at // "")
           }))
@@ -204,7 +259,29 @@ case "$platform" in
     require_cmd gh
     review_comments=$(gh api "repos/$repository/pulls/$number/comments")
     discussion_comments=$(gh api "repos/$repository/issues/$number/comments")
-    normalized=$(normalize_github_comments "$review_comments" "$discussion_comments")
+    owner=${repository%%/*}
+    repo_name=${repository#*/}
+    review_threads=$(gh api graphql -f query='
+      query($owner: String!, $repo: String!, $number: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $number) {
+            reviewThreads(first: 100) {
+              nodes {
+                id
+                isResolved
+                isOutdated
+                comments(first: 100) {
+                  nodes {
+                    databaseId
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ' -F owner="$owner" -F repo="$repo_name" -F number="$number")
+    normalized=$(normalize_github_comments "$review_comments" "$discussion_comments" "$review_threads")
     ;;
   gitlab)
     require_cmd glab
