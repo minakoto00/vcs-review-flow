@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "description": "Convenience installer for skills hosted in minakoto00/vcs-review-flow.",
   "bin": {
-    "minakoto-skills": "./bin/skills.js"
+    "minakoto-skills": "bin/skills.js"
   },
   "files": [
     "README.md",
+    "LICENSE",
     "bin/",
     "install-skill.sh",
     "skills/"
   ],
-  "license": "UNLICENSED"
+  "license": "MIT"
 }

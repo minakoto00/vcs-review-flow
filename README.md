@@ -44,3 +44,7 @@ Use `bash ./install-skill.sh --help` for scripted flags and dry-run options.
 - `skills/review-pr/scripts/`: helper scripts used by the skill workflow
 - `install-skill.sh`: advanced manual installer
 - `bin/skills.js`: npm wrapper for `npx @minakoto00/skills install review-pr`
+
+## License
+
+This repository and the published `@minakoto00/skills` package are available under the MIT License. See `LICENSE`.
