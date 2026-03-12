@@ -1,10 +1,48 @@
-# VCS Review Flow
+# review-pr
 
-`vcs-review-flow` is a reusable skill for pulling the latest open GitLab merge request or GitHub pull request into a local worktree, reviewing it, producing a change plan, and then either implementing the fixes or posting the proposal back to the remote.
+`review-pr` is the canonical skill in this repository. It reviews the latest open GitHub pull request or GitLab merge request through a local worktree, gathers remote feedback, and drives either local implementation or a comment-only proposal.
 
-It is built for repos that use repo-level instructions such as `AGENTS.md` or `CLAUDE.md` to control where worktrees should live.
+The repository is structured for `skills.sh`, with the skill payload living at `skills/review-pr/`.
 
-## What It Does
+## Install
+
+Primary install path:
+
+```bash
+npx skills add minakoto00/vcs-review-flow --skill review-pr
+```
+
+Update installed skills with:
+
+```bash
+npx skills check
+npx skills update
+```
+
+Optional shortcut:
+
+```bash
+npx @minakoto00/skills install review-pr
+```
+
+That wrapper delegates to the same `skills add` target instead of maintaining a second installer flow.
+
+## Advanced Manual Install
+
+For local development or power users, the repo still includes an interactive installer:
+
+```bash
+bash ./install-skill.sh
+```
+
+It prompts for:
+- target agent: Codex or Claude Code
+- install scope: user-global or project-local
+- install method: symlink or copy
+
+Scripted flags and dry runs are still supported. Use `bash ./install-skill.sh --help` for the current options.
+
+## What The Skill Does
 
 - resolves the latest open MR/PR, or a user-specified MR/PR number
 - fetches MR/PR review feedback and splits it into `code-review comments` and `discussion comments`
@@ -13,85 +51,9 @@ It is built for repos that use repo-level instructions such as `AGENTS.md` or `C
 - reuses or creates the correct local worktree for the MR/PR source branch
 - syncs the worktree to the remote branch head
 - supports a review flow that ends with a change plan and explicit finish options
-- can post proposed changes back as a GitLab/GitHub comment instead of implementing locally
+- can post proposed changes back as a GitLab or GitHub comment instead of implementing locally
 
-## Prerequisites
-
-- `git`
-- `jq`
-- `gh` for GitHub repositories
-- `glab` for GitLab repositories
-
-## Installation
-
-Run installation commands from the skill directory:
-
-```bash
-cd /path/to/vcs-review-flow
-```
-
-Run the interactive installer:
-
-```bash
-bash ./install-skill.sh
-```
-
-The installer will ask for:
-- target agent: Codex or Claude Code
-- install scope: user-global or project-local
-- install method: symlink or copy
-
-### Non-Interactive Installation Commands
-
-Codex, user-global, symlink:
-
-```bash
-bash ./install-skill.sh \
-  --agent codex \
-  --scope user-global \
-  --method symlink
-```
-
-Codex, project-local, copy:
-
-```bash
-bash ./install-skill.sh \
-  --agent codex \
-  --scope project-local \
-  --method copy \
-  --project-root /path/to/repo
-```
-
-Claude Code, user-global, symlink:
-
-```bash
-bash ./install-skill.sh \
-  --agent claude \
-  --scope user-global \
-  --method symlink
-```
-
-Claude Code, project-local, copy:
-
-```bash
-bash ./install-skill.sh \
-  --agent claude \
-  --scope project-local \
-  --method copy \
-  --project-root /path/to/repo
-```
-
-Dry run without installing:
-
-```bash
-bash ./install-skill.sh \
-  --agent codex \
-  --scope user-global \
-  --method symlink \
-  --dry-run
-```
-
-## Usage
+## Workflow Summary
 
 From a repository you want to review, the core steps are:
 
@@ -106,74 +68,75 @@ From a repository you want to review, the core steps are:
 9. Produce a change plan.
 10. Choose whether to implement locally or post the proposal remotely.
 
-### Detect Platform
+If comments are present:
+- ask the user whether to include code-review comments in scope
+- ask the user whether to include discussion comments in scope
+- only the approved comment categories move forward
+- resolved code-review feedback is excluded by default
+- outdated threads are validated separately from unresolved threads
+- group approved unresolved and outdated code-review feedback into issue clusters before validation
+- dispatch several subagents in parallel when approved comments need validation
+- search only within changed files for same-pattern candidates
+- report same-pattern candidates separately from the original issues
+- show a verification report before planning fixes
+- if the user confirms, keep confirmed issues in scope even when tests do not yet cover them
+
+## Local Development Commands
+
+When running the skill directly from a clone of this repository, use the scripts under `skills/review-pr/`.
+
+Detect platform:
 
 ```bash
-bash ./scripts/detect_platform.sh \
-  --repo /path/to/repo
+bash ./skills/review-pr/scripts/detect_platform.sh --repo /path/to/repo
 ```
 
-### Resolve the Latest Open MR/PR
+Resolve the latest open MR/PR:
 
 ```bash
-bash ./scripts/resolve_review_target.sh \
+bash ./skills/review-pr/scripts/resolve_review_target.sh \
   --repo /path/to/repo \
   --latest
 ```
 
-### Resolve a Specific MR/PR Number
+Resolve a specific MR/PR number:
 
 ```bash
-bash ./scripts/resolve_review_target.sh \
+bash ./skills/review-pr/scripts/resolve_review_target.sh \
   --repo /path/to/repo \
   --number 123
 ```
 
-### Inspect Repo Worktree Policy
+Inspect repo worktree policy:
 
 ```bash
-bash ./scripts/repo_policy.sh \
+bash ./skills/review-pr/scripts/repo_policy.sh \
   --repo /path/to/repo
 ```
 
-### Fetch Review Comments
+Fetch review comments:
 
 ```bash
-bash ./scripts/fetch_review_comments.sh \
+bash ./skills/review-pr/scripts/fetch_review_comments.sh \
   --repo /path/to/repo \
   --number 123 \
   --platform github \
   --json
 ```
 
-If comments are present:
-- Ask the user whether to include code-review comments in scope.
-- Ask the user whether to include discussion comments in scope.
-- Pull only the approved comment categories into the review context.
-- Preserve richer remote metadata for approved code-review comments.
-- Resolved code-review feedback is excluded by default.
-- Outdated threads are validated separately from unresolved threads.
-- Group approved unresolved and outdated code-review feedback into issue clusters before validation.
-- If any categories are approved, dispatch several subagents in parallel to validate those approved comments.
-- Search only within changed files for same-pattern candidates.
-- Report same-pattern candidates separately from the original issues.
-- Show a simple verification report.
-- Ask the user to confirm the verification report before planning fixes.
-- If the user confirms, keep the confirmed issues in scope even when tests do not yet cover them.
-
-### Prepare or Reuse the Worktree
+Prepare or reuse the worktree:
 
 ```bash
-bash ./scripts/worktree_sync.sh \
+bash ./skills/review-pr/scripts/worktree_sync.sh \
   --repo /path/to/repo \
   --source-branch feat/example \
   --head-sha abcdef1234567890
 ```
 
-### Post a Comment-Only Proposal
+Post a comment-only proposal:
 
 ```bash
-bash ./scripts/post_review_comment.sh \
+bash ./skills/review-pr/scripts/post_review_comment.sh \
   --repo /path/to/repo \
   --number 123 \
   --body-file /tmp/review-plan.md
@@ -189,13 +152,8 @@ bash ./scripts/post_review_comment.sh \
 
 ## Files
 
-- `SKILL.md`: skill entrypoint and workflow contract
-- `install-skill.sh`: interactive and scripted installer
-- `scripts/`: helper scripts for platform detection, target resolution, policy parsing, worktree sync, and comment posting
-- `scripts/fetch_review_comments.sh`: helper for normalized MR/PR comment intake
-- `docs/examples.md`: extra examples
-
-## Related Docs
-
-- `SKILL.md`
-- `docs/examples.md`
+- `skills/review-pr/SKILL.md`: skill entrypoint and workflow contract
+- `skills/review-pr/scripts/`: runtime helpers for platform detection, target resolution, policy parsing, worktree sync, and comment posting
+- `skills/review-pr/docs/examples.md`: extra examples
+- `install-skill.sh`: advanced manual installer
+- `bin/skills.js`: npm wrapper for `npx @minakoto00/skills install review-pr`

@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=./scripts/common.sh
-source "$SCRIPT_DIR/scripts/common.sh"
+# shellcheck source=./skills/review-pr/scripts/common.sh
+source "$SCRIPT_DIR/skills/review-pr/scripts/common.sh"
 
 agent=
 scope=
@@ -16,7 +16,7 @@ usage() {
   cat <<'USAGE'
 Usage: install-skill.sh [--agent codex|claude] [--scope user-global|project-local] [--method symlink|copy] [--project-root <path>] [--conflict replace|backup|cancel] [--dry-run]
 
-Interactive installer for the vcs-review-flow skill.
+Interactive installer for the review-pr skill.
 USAGE
 }
 
@@ -24,7 +24,8 @@ prompt_with_default() {
   local prompt=$1
   local default_value=$2
   local value
-  read -r -p "$prompt [$default_value]: " value
+  printf '%s [%s]: ' "$prompt" "$default_value" >&2
+  read -r value
   printf '%s' "${value:-$default_value}"
 }
 
@@ -35,17 +36,18 @@ choose_option() {
   local options=("$@")
   local answer
   while true; do
-    printf '%s\n' "$prompt"
+    printf '%s\n' "$prompt" >&2
     local index=1
     for option in "${options[@]}"; do
       if [[ "$option" == "$default_value" ]]; then
-        printf '  %s. %s (default)\n' "$index" "$option"
+        printf '  %s. %s (default)\n' "$index" "$option" >&2
       else
-        printf '  %s. %s\n' "$index" "$option"
+        printf '  %s. %s\n' "$index" "$option" >&2
       fi
       index=$((index + 1))
     done
-    read -r -p "> " answer
+    printf '> ' >&2
+    read -r answer
     answer=${answer:-$default_value}
     if [[ "$answer" == "$default_value" ]]; then
       printf '%s\n' "$default_value"
@@ -156,8 +158,8 @@ case "$method" in
   *) die "method must be symlink or copy" ;;
 esac
 
-source_dir=$(normalize_path "$SCRIPT_DIR")
-skill_name=$(basename "$source_dir")
+source_dir=$(normalize_path "$SCRIPT_DIR/skills/review-pr")
+skill_name=review-pr
 target_root=$(determine_target_root)
 target_path="$target_root/$skill_name"
 

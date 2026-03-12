@@ -2,7 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
-SCRIPT="$ROOT_DIR/scripts/fetch_review_comments.sh"
+SKILL_DIR="$ROOT_DIR/skills/review-pr"
+SCRIPT="$SKILL_DIR/scripts/fetch_review_comments.sh"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -318,17 +319,17 @@ test_gitlab_json_split() {
 }
 
 test_docs_cover_two_step_scope_flow() {
-  grep -q 'fetch_review_comments.sh' "$ROOT_DIR/SKILL.md"
-  grep -q 'code-review comments' "$ROOT_DIR/SKILL.md"
-  grep -q 'discussion comments' "$ROOT_DIR/SKILL.md"
-  grep -qi 'only the approved comment categories' "$ROOT_DIR/SKILL.md"
-  grep -qi 'resolved code-review feedback is excluded from review scope by default' "$ROOT_DIR/SKILL.md"
-  grep -qi 'outdated code-review feedback' "$ROOT_DIR/SKILL.md"
-  grep -qi 'search only within changed files for same-pattern candidates' "$ROOT_DIR/SKILL.md"
-  grep -qi 'report same-pattern candidates separately from the original issue clusters' "$ROOT_DIR/SKILL.md"
-  grep -qi 'subagents in parallel' "$ROOT_DIR/SKILL.md"
-  grep -qi 'verification report' "$ROOT_DIR/SKILL.md"
-  grep -qi 'before planning fixes' "$ROOT_DIR/SKILL.md"
+  grep -q 'fetch_review_comments.sh' "$SKILL_DIR/SKILL.md"
+  grep -q 'code-review comments' "$SKILL_DIR/SKILL.md"
+  grep -q 'discussion comments' "$SKILL_DIR/SKILL.md"
+  grep -qi 'only the approved comment categories' "$SKILL_DIR/SKILL.md"
+  grep -qi 'resolved code-review feedback is excluded from review scope by default' "$SKILL_DIR/SKILL.md"
+  grep -qi 'outdated code-review feedback' "$SKILL_DIR/SKILL.md"
+  grep -qi 'search only within changed files for same-pattern candidates' "$SKILL_DIR/SKILL.md"
+  grep -qi 'report same-pattern candidates separately from the original issue clusters' "$SKILL_DIR/SKILL.md"
+  grep -qi 'subagents in parallel' "$SKILL_DIR/SKILL.md"
+  grep -qi 'verification report' "$SKILL_DIR/SKILL.md"
+  grep -qi 'before planning fixes' "$SKILL_DIR/SKILL.md"
   grep -qi 'ask the user whether to include code-review comments in scope' "$ROOT_DIR/README.md"
   grep -qi 'only the approved comment categories' "$ROOT_DIR/README.md"
   grep -qi 'resolved code-review feedback is excluded by default' "$ROOT_DIR/README.md"
@@ -337,13 +338,13 @@ test_docs_cover_two_step_scope_flow() {
   grep -qi 'same-pattern candidates separately from the original issues' "$ROOT_DIR/README.md"
   grep -qi 'verification report' "$ROOT_DIR/README.md"
   grep -qi 'even when tests do not yet cover them' "$ROOT_DIR/README.md"
-  grep -qi 'ask the user whether to include discussion comments in scope' "$ROOT_DIR/docs/examples.md"
-  grep -qi 'subagents in parallel' "$ROOT_DIR/docs/examples.md"
-  grep -qi 'resolved code-review feedback is excluded by default' "$ROOT_DIR/docs/examples.md"
-  grep -qi 'outdated threads are validated separately from unresolved threads' "$ROOT_DIR/docs/examples.md"
-  grep -qi 'search only within changed files for same-pattern candidates' "$ROOT_DIR/docs/examples.md"
-  grep -qi 'same-pattern candidates are reported separately from the original issues' "$ROOT_DIR/docs/examples.md"
-  grep -qi 'confirm the verification report' "$ROOT_DIR/docs/examples.md"
+  grep -qi 'ask the user whether to include discussion comments in scope' "$SKILL_DIR/docs/examples.md"
+  grep -qi 'subagents in parallel' "$SKILL_DIR/docs/examples.md"
+  grep -qi 'resolved code-review feedback is excluded by default' "$SKILL_DIR/docs/examples.md"
+  grep -qi 'outdated threads are validated separately from unresolved threads' "$SKILL_DIR/docs/examples.md"
+  grep -qi 'search only within changed files for same-pattern candidates' "$SKILL_DIR/docs/examples.md"
+  grep -qi 'same-pattern candidates are reported separately from the original issues' "$SKILL_DIR/docs/examples.md"
+  grep -qi 'confirm the verification report' "$SKILL_DIR/docs/examples.md"
   ! rg -n '/Users/brainco' "$ROOT_DIR/README.md" >/dev/null
 }
 

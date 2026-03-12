@@ -1,4 +1,4 @@
-# VCS Review Flow Examples
+# Review PR Examples
 
 ## Latest Open GitLab MR
 
@@ -99,14 +99,8 @@ Suggested comment body structure:
 
 ## Installer Dry Run
 
-Codex user-global:
+Advanced manual installer:
 
 ```bash
 bash install-skill.sh --agent codex --scope user-global --method symlink --dry-run
-```
-
-Claude Code project-local:
-
-```bash
-bash install-skill.sh --agent claude --scope project-local --method copy --project-root /path/to/repo --dry-run
 ```

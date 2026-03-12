@@ -1,9 +1,9 @@
 ---
-name: vcs-review-flow
+name: review-pr
 description: Use when you need to review or update the latest open GitLab merge request or GitHub pull request through a local worktree, or when a user provides a specific MR or PR number.
 ---
 
-# VCS Review Flow
+# Review PR
 
 Use this skill when the user wants you to pull, review, or update a remote GitLab MR or GitHub PR through a local worktree instead of switching the current checkout.
 

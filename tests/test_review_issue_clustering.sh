@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
-SCRIPT="$ROOT_DIR/scripts/cluster_review_issues.sh"
+SCRIPT="$ROOT_DIR/skills/review-pr/scripts/cluster_review_issues.sh"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
