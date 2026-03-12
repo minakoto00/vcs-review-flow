@@ -33,7 +33,17 @@ If `discussion comments` are present, ask the user whether to include discussion
 
 Only the approved comment categories move forward.
 
+Resolved code-review feedback is excluded by default.
+
+Outdated threads are validated separately from unresolved threads.
+
+Group approved unresolved and outdated code-review feedback into issue clusters before validation.
+
 For approved comments, dispatch several subagents in parallel to validate whether the comments still make sense.
+
+During that validation, subagents search only within changed files for same-pattern candidates.
+
+Those same-pattern candidates are reported separately from the original issues.
 
 Then confirm the verification report with the user before planning fixes.
 

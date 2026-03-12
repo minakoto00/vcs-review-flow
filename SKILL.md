@@ -53,7 +53,12 @@ Rules:
 - if `discussion comments` exist, ask the user whether to include discussion comments in scope after the code-review comment decision
 - only the approved comment categories enter the active review scope
 - preserve richer remote metadata for approved code-review comments when the platform provides it
+- resolved code-review feedback is excluded from review scope by default
+- outdated code-review feedback is validated separately from unresolved threads
+- approved unresolved and outdated code-review feedback is grouped into issue clusters before validation
 - if any categories are approved, dispatch several subagents in parallel to validate whether those approved comments still make sense
+- subagents search only within changed files for same-pattern candidates
+- report same-pattern candidates separately from the original issue clusters
 - present a simple verification report before planning fixes
 - ask the user to confirm the verification report before planning fixes
 - if the user confirms, treat the confirmed comments as in-scope issues even when tests do not yet cover them
@@ -94,7 +99,12 @@ If no dedicated review skill is available, perform the review directly with a co
 8. If approved comment categories were selected, validate them before fix planning.
 
 For approved comments:
-- dispatch several subagents in parallel to classify each selected comment as likely valid, unclear, or likely stale
+- exclude resolved code-review feedback from active validation by default
+- validate outdated threads separately from unresolved threads
+- group approved code-review feedback into issue clusters before dispatch
+- dispatch several subagents in parallel to classify each selected comment or issue cluster as likely valid, unclear, or likely stale
+- search only within changed files for same-pattern candidates
+- report same-pattern candidates separately from the original issue clusters
 - produce a verification report with a short reason for each classification
 - ask the user to confirm the verification report before planning fixes
 

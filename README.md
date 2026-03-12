@@ -151,7 +151,12 @@ If comments are present:
 - Ask the user whether to include discussion comments in scope.
 - Pull only the approved comment categories into the review context.
 - Preserve richer remote metadata for approved code-review comments.
+- Resolved code-review feedback is excluded by default.
+- Outdated threads are validated separately from unresolved threads.
+- Group approved unresolved and outdated code-review feedback into issue clusters before validation.
 - If any categories are approved, dispatch several subagents in parallel to validate those approved comments.
+- Search only within changed files for same-pattern candidates.
+- Report same-pattern candidates separately from the original issues.
 - Show a simple verification report.
 - Ask the user to confirm the verification report before planning fixes.
 - If the user confirms, keep the confirmed issues in scope even when tests do not yet cover them.
